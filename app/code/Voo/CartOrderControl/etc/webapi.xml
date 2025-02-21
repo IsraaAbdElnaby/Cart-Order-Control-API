@@ -13,7 +13,7 @@
     </route>
 
     <route url="/V1/voo-api/cart" method="POST">
-        <service class="Voo\CartOrderControl\Api\CartManagementInterface" method="addOrUpdateItem"/>
+        <service class="Voo\CartOrderControl\Api\CartInterface" method="addOrUpdateItem"/>
         <resources>
             <resource ref="self" />
         </resources>
