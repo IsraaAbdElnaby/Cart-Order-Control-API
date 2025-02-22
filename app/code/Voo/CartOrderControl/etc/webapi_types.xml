@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi_types.xsd">
+    <complexType name="Voo\CartOrderControl\Api\Data\CartDetailsInterface">
+        <parameter name="items" type="Voo\CartOrderControl\Api\Data\CartItemInterface[]" />
+        <parameter name="grand_total" type="float" />
+        <parameter name="subtotal" type="float" />
+        <parameter name="coupon_code" type="string" />
+        <parameter name="items_qty" type="float" />
+        <parameter name="currency_code" type="string" />
+    </complexType>
+    <complexType name="Voo\CartOrderControl\Api\Data\CartItemInterface">
+        <parameter name="sku" type="string" />
+        <parameter name="qty" type="float" />
+        <parameter name="name" type="string" />
+        <parameter name="price" type="float" />
+        <parameter name="row_total" type="float" />
+    </complexType>
+</routes>

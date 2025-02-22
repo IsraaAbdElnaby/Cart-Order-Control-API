@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <preference for="Voo\CartOrderControl\Api\CartInterface"
+                type="Voo\CartOrderControl\Model\Cart"/>
+    <preference for="Voo\CartOrderControl\Api\Data\CartDetailsInterface"
+                type="Voo\CartOrderControl\Model\Data\CartDetails"/>
+    <preference for="Voo\CartOrderControl\Api\Data\CartItemInterface"
+                type="Voo\CartOrderControl\Model\Data\CartItem"/>
+    <preference for="Voo\CartOrderControl\Api\Data\CartDetailsMapperInterface"
+                type="Voo\CartOrderControl\Model\Mapper\CartDetailsMapper"/>
+</config>
