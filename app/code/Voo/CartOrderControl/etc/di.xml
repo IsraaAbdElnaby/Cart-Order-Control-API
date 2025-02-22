@@ -4,5 +4,6 @@
 
     <preference for="Voo\CartOrderControl\Api\CartInterface"
                 type="Voo\CartOrderControl\Model\Cart"/>
-
+    <preference for="Voo\CartOrderControl\Api\OrderInterface"
+                type="Voo\CartOrderControl\Model\Order"/>
 </config>
