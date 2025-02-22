@@ -7,11 +7,9 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Api\CartTotalRepositoryInterface;
-use Voo\CartOrderControl\Api\Data\CartDetailsInterface;
-use Voo\CartOrderControl\Api\Data\CartDetailsMapperInterface;
+use Magento\Quote\Model\QuoteIdMaskFactory;
 use Voo\CartOrderControl\Api\CartInterface;
-use Magento\Customer\Model\Session as CustomerSession;
-use Magento\Checkout\Model\Session as CheckoutSession;
+use Magento\Catalog\Model\ProductFactory;
 
 class Cart implements CartInterface
 {
@@ -24,88 +22,97 @@ class Cart implements CartInterface
     /**
      * @var CartTotalRepositoryInterface
      */
-    private $cartTotalRepository;
+    private $quoteIdMaskFactory;
 
     /**
      * @var ProductRepositoryInterface
      */
     private $productRepository;
 
-    /**
-     * @var CartDetailsMapperInterface
-     */
-    private $cartDetailsMapper;
+    private $productFactory;
 
-    private $customerSession;
-
-    private $checkoutSession;
 
     public function __construct(
         CartRepositoryInterface $cartRepository,
-        CartTotalRepositoryInterface $cartTotalRepository,
+        QuoteIdMaskFactory $quoteIdMaskFactory,
         ProductRepositoryInterface $productRepository,
-        CartDetailsMapperInterface $cartDetailsMapper,
-        CustomerSession $customerSession,
-        CheckoutSession $checkoutSession
+        ProductFactory $productFactory
     ) {
         $this->cartRepository = $cartRepository;
-        $this->cartTotalRepository = $cartTotalRepository;
+        $this->quoteIdMaskFactory = $quoteIdMaskFactory;
         $this->productRepository = $productRepository;
-        $this->cartDetailsMapper = $cartDetailsMapper;
-        $this->customerSession = $customerSession;
-        $this->checkoutSession = $checkoutSession;
+        $this->productFactory = $productFactory;
     }
 
-    /**
-     * @inheritDoc
-     * @throws NoSuchEntityException
-     */
-    public function getCartDetails(): CartDetailsInterface
+    public function getCartDetails(int $cartId): array
     {
-        if(!$this->customerSession->isLoggedIn()) {
-            throw new NoSuchEntityException(__('You are not logged in.'));
+        $quote = $this->cartRepository->get($cartId);
+        $items = [];
+
+        foreach ($quote->getAllVisibleItems() as $item) {
+            $items[] = [
+                'sku' => $item->getSku(),
+                'qty' => $item->getQty(),
+                'price' => $item->getPrice(),
+                'name' => $item->getName(),
+            ];
         }
 
-        $quote = $this->checkoutSession->getQuote();
-        if (!$quote || !$quote->getId()) {
-            throw new NoSuchEntityException(__('Cart does not exist.'));
-        }
-        return $this->cartDetailsMapper->map($quote);
+        return [
+            'items' => $items,
+            'totals' => [
+                'subtotal' => $quote->getSubtotal(),
+                'grand_total' => $quote->getGrandTotal(),
+            ],
+            'total_items' => count($items)
+            ];
     }
 
     /**
-     * @inheritDoc
+     * @throws NoSuchEntityException
      * @throws LocalizedException
      */
-    public function addOrUpdateItem(int $cartId, string $sku, int $quantity): bool
+    public function addOrUpdateItem(int $cartId, string $sku, float $quantity): bool
     {
-        $quote = $this->cartRepository->getActive($cartId);
-        $product = $this->productRepository->get($sku);
+        try {
+            $quote = $this->cartRepository->getActive($cartId);
+            $product = $this->productRepository->get($sku);
 
-        if ($quote->getId()) {
-            $cartItem = null;
-
-            foreach ($quote->getAllItems() as $item) {
-                if ($item->getSku() === $sku) {
-                    $cartItem = $item;
-                    break;
-                }
+            if (!$product->getId()) {
+                throw new NoSuchEntityException(__('Product not found.'));
             }
 
-            //If the item exists in the cart update its quantity, else add it
+            $productModel = $this->productFactory->create();
+            $productModel->load($product->getId());
+
+
+            $cartItem = $quote->getItemByProduct($productModel);
+
+            // Validate quantity
+            if ($quantity <= 0) {
+                if ($cartItem) {
+                    // If item exists, remove it
+                    $quote->removeItem($cartItem->getId());
+                    $this->cartRepository->save($quote);
+                } else {
+                    return true;
+                }
+            }
             if ($cartItem) {
                 $cartItem->setQty($quantity);
+                $cartItem->getProduct()->isSalable(true);
+                $quote->updateItem($cartItem->getId(), $cartItem);
             } else {
-                $cartItem = $quote->addProduct($product, $quantity);
-                if (is_string($cartItem)) {
-                    throw new LocalizedException(__($cartItem));
-                }
+                $quote->addProduct($product, $quantity);
             }
 
             $this->cartRepository->save($quote);
             return true;
+        } catch (NoSuchEntityException $e) {
+            throw new LocalizedException(__('Could not find the product with SKU: %1', $sku));
+        } catch (\Exception $e) {
+            throw new LocalizedException(__('Could not add/update the product: %1', $e->getMessage()));
         }
-
-        return false;
     }
+
 }
