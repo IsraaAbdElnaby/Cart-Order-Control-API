@@ -70,7 +70,7 @@ class Order implements OrderInterface
             return [
                 'error' => true,
                 'message' => __('Daily order limit exceeded. You can only place 2 orders per day.'),
-                'reset_at' => $resetTime->format('Y-m-d H:i:s'),
+                'reset_at' => $resetTime->format('d-m-Y h:i:s A'),
             ];
         }
 
@@ -87,7 +87,7 @@ class Order implements OrderInterface
                 'error' => false,
                 'message' => __('Order placed successfully.'),
                 'order_id' => $order->getIncrementId(),
-                'order_date' => $this->timezone->date()->format('Y-m-d H:i:s'),
+                'order_date' => $this->timezone->date()->format('d-m-Y h:i:s A'),
             ];
         }
 
@@ -101,8 +101,8 @@ class Order implements OrderInterface
 
         $searchCriteria = $this->searchCriteriaBuilder
             ->addFilter('customer_id', $customerId)
-            ->addFilter('created_at', $today->format('Y-m-d H:i:s'), 'gteq')
-            ->addFilter('created_at', $tomorrow->format('Y-m-d H:i:s'), 'lt')
+            ->addFilter('created_at', $today->format('d-m-Y h:i:s A'), 'gteq')
+            ->addFilter('created_at', $tomorrow->format('d-m-Y h:i:s A'), 'lt')
             ->create();
 
         $orders = $this->orderRepository->getList($searchCriteria);
